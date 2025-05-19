@@ -1,6 +1,6 @@
 # 🌡️ Sensor Data API (FastAPI + Docker)
 
-A FastAPI microservice for receiving and querying sensor data (temperature, humidity, and timestamps) from IoT devices. It uses SQLite with SQLAlchemy and is fully containerized with Docker.
+A FastAPI microservice for receiving and querying sensor data (sensor id, temperature, humidity, and timestamps) from IoT devices. It uses SQLite with SQLAlchemy and is fully containerized with Docker.
 
 ---
 
@@ -33,7 +33,7 @@ A FastAPI microservice for receiving and querying sensor data (temperature, humi
    cd sensor-api
 
 2. **Start the application**
-    docker compose up --build
+    - docker compose up --build
 
 3. **Access the API**
 
@@ -80,6 +80,37 @@ A FastAPI microservice for receiving and querying sensor data (temperature, humi
     }
 
 
+### 📝 Validation and Data Integrity
+- Added validation at multiple levels to guarantee data quality and consistency:
+
+1. API Input Validation (Pydantic Models)
+    - Temperature must be between -50°C and 150°C to allow realistic sensor ranges.
+
+    - Humidity is validated to be between 0% and 100%.
+
+    - Device ID must start with the prefix "sensor-" to follow the expected naming scheme.
+
+    - Timestamp cannot be in the future, preventing logically impossible readings.
+
+
+2. Database-Level Unique Constraint
+    - The database schema enforces uniqueness on the combination of (device_id, temperature, humidity, timestamp) to prevent duplicate sensor readings.
+
+    - This constraint ensures persistent data integrity, even if multiple requests are submitted concurrently.
+
+3. Application Exception Handling
+    - On attempting to insert a duplicate reading, the database raises an IntegrityError, which the app catches to:
+
+    - Roll back the transaction cleanly.
+
+    - Log a warning message noting the skipped duplicate.
+
+    - This avoids crashes and supports smooth operation under edge conditions.
+
+4. Background Task Processing
+    - Data insertions run as background tasks to keep API responses fast and non-blocking.
+
+
 ### 🧪 Running Tests
 - Tests are written using pytest and TestClient. They cover:
 
@@ -93,11 +124,11 @@ A FastAPI microservice for receiving and querying sensor data (temperature, humi
 
     - Database schema setup
 
-    ▶️ Run Tests in Docker
+    - Run Tests in Docker
         - Open a shell in the container:
-            ***docker compose run web sh***
+            - ***docker compose run web sh***
 
-        - Run tests inside the container:
+        - Run tests inside the container
             ***pytest***
 
 ### 🛠️ Development Stack
